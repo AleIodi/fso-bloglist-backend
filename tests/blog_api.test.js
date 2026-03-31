@@ -26,6 +26,18 @@ test.only('all blogs are returned', async () => {
   assert.strictEqual(response.body.length, helper.initialBlogs.length)
 })
 
+test.only('blogs unique identifier is id', async () => {
+  const response = await api.get('/api/blogs')
+
+  const firstBlog = response.body[0]
+
+  assert.ok(firstBlog.id)
+  
+  assert.strictEqual(firstBlog._id, undefined)
+  
+  assert.strictEqual(firstBlog.__v, undefined)
+})
+
 after(async () => {
   await mongoose.connection.close()
 })

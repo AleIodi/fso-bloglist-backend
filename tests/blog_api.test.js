@@ -60,6 +60,22 @@ test.only('one blog is being insert', async () => {
   assert(contents.includes('Il mio terzo post'))
 })
 
+test.only('one blog is being insert with likes 0 if not provided', async () => {
+  const newBlog = {
+    title: "Il mio quarto post",
+		author: "Mario Marroni",
+		url: "https://miosito.it/post4",
+  }
+
+  const response = await api
+  .post('/api/blogs')
+  .send(newBlog)
+  .expect(201)
+  .expect('Content-Type', /application\/json/)
+
+  assert.strictEqual(response.body.likes, 0)
+})
+
 after(async () => {
   await mongoose.connection.close()
 })

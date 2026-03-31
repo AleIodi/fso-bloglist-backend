@@ -76,6 +76,17 @@ test.only('one blog is being insert with likes 0 if not provided', async () => {
   assert.strictEqual(response.body.likes, 0)
 })
 
+test.only('bad request if the insert blog has no title or url', async () => {
+  const newBlog = {
+		author: "Mario Marroni",
+  }
+
+  await api
+  .post('/api/blogs')
+  .send(newBlog)
+  .expect(400)
+})
+
 after(async () => {
   await mongoose.connection.close()
 })

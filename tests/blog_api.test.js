@@ -38,6 +38,28 @@ test.only('blogs unique identifier is id', async () => {
   assert.strictEqual(firstBlog.__v, undefined)
 })
 
+test.only('one blog is being insert', async () => {
+  const newBlog = {
+    title: "Il mio terzo post",
+		author: "Mario Rossi",
+		url: "https://miosito.it/post3",
+		likes: 5
+  }
+
+  await api
+  .post('/api/blogs')
+  .send(newBlog)
+  .expect(201)
+  .expect('Content-Type', /application\/json/)
+
+  const response = await api.get('/api/blogs')
+  const contents = response.body.map(r => r.title)
+
+  assert.strictEqual(helper.initialBlogs.length+1,response.body.length)
+
+  assert(contents.includes('Il mio terzo post'))
+})
+
 after(async () => {
   await mongoose.connection.close()
 })

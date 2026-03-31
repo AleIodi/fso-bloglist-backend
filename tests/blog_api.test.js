@@ -1,4 +1,4 @@
-const { test, after, beforeEach } = require('node:test')
+const { test, after, beforeEach, describe } = require('node:test')
 const mongoose = require('mongoose')
 const supertest = require('supertest')
 const app = require('../app')
@@ -8,99 +8,126 @@ const assert = require('node:assert')
 
 const api = supertest(app)
 
-beforeEach(async ()=>{
-  await Blog.deleteMany({})
-  await Blog.insertMany(helper.initialBlogs)
-})
+describe('blog list tests', () => {
 
-test.only('blogs are returned as json', async () => {
-  await api
-    .get('/api/blogs')
-    .expect(200)
-    .expect('Content-Type', /application\/json/)
-})
+  beforeEach(async () => {
+    await Blog.deleteMany({})
+    await Blog.insertMany(helper.initialBlogs)
+  })
 
-test.only('all blogs are returned', async () => {
-  const response = await api.get('/api/blogs')
+  describe('when there is initially some blogs saved', () => {
+    test('blogs are returned as json', async () => {
+      await api
+        .get('/api/blogs')
+        .expect(200)
+        .expect('Content-Type', /application\/json/)
+    })
 
-  assert.strictEqual(response.body.length, helper.initialBlogs.length)
-})
+    test('all blogs are returned', async () => {
+      const response = await api.get('/api/blogs')
+      assert.strictEqual(response.body.length, helper.initialBlogs.length)
+    })
 
-test.only('blogs unique identifier is id', async () => {
-  const response = await api.get('/api/blogs')
+    test('unique identifier property is named id', async () => {
+      const response = await api.get('/api/blogs')
+      const firstBlog = response.body[0]
 
-  const firstBlog = response.body[0]
+      assert.ok(firstBlog.id)
+      assert.strictEqual(firstBlog._id, undefined)
+      assert.strictEqual(firstBlog.__v, undefined)
+    })
+  })
 
-  assert.ok(firstBlog.id)
-  
-  assert.strictEqual(firstBlog._id, undefined)
-  
-  assert.strictEqual(firstBlog.__v, undefined)
-})
+  describe('addition of a new blog', () => {
+    test('succeeds with valid data', async () => {
+      const newBlog = {
+        title: "Il mio terzo post",
+        author: "Mario Rossi",
+        url: "https://miosito.it/post3",
+        likes: 5
+      }
 
-test.only('one blog is being insert', async () => {
-  const newBlog = {
-    title: "Il mio terzo post",
-		author: "Mario Rossi",
-		url: "https://miosito.it/post3",
-		likes: 5
-  }
+      await api
+        .post('/api/blogs')
+        .send(newBlog)
+        .expect(201)
+        .expect('Content-Type', /application\/json/)
 
-  await api
-  .post('/api/blogs')
-  .send(newBlog)
-  .expect(201)
-  .expect('Content-Type', /application\/json/)
+      const blogsAtEnd = await helper.blogsInDb()
+      assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length + 1)
 
-  const response = await api.get('/api/blogs')
-  const contents = response.body.map(r => r.title)
+      const titles = blogsAtEnd.map(b => b.title)
+      assert(titles.includes('Il mio terzo post'))
+    })
 
-  assert.strictEqual(helper.initialBlogs.length+1,response.body.length)
+    test('if likes property is missing, it defaults to 0', async () => {
+      const newBlog = {
+        title: "Post without likes",
+        author: "Mario Marroni",
+        url: "https://miosito.it/post4",
+      }
 
-  assert(contents.includes('Il mio terzo post'))
-})
+      const response = await api
+        .post('/api/blogs')
+        .send(newBlog)
+        .expect(201)
 
-test.only('one blog is being insert with likes 0 if not provided', async () => {
-  const newBlog = {
-    title: "Il mio quarto post",
-		author: "Mario Marroni",
-		url: "https://miosito.it/post4",
-  }
+      assert.strictEqual(response.body.likes, 0)
+    })
 
-  const response = await api
-  .post('/api/blogs')
-  .send(newBlog)
-  .expect(201)
-  .expect('Content-Type', /application\/json/)
+    test('fails with status code 400 if title or url are missing', async () => {
+      const newBlog = {
+        author: "Mario Marroni",
+      }
 
-  assert.strictEqual(response.body.likes, 0)
-})
+      await api
+        .post('/api/blogs')
+        .send(newBlog)
+        .expect(400)
 
-test.only('bad request if the insert blog has no title or url', async () => {
-  const newBlog = {
-		author: "Mario Marroni",
-  }
+      const blogsAtEnd = await helper.blogsInDb()
+      assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length)
+    })
+  })
 
-  await api
-  .post('/api/blogs')
-  .send(newBlog)
-  .expect(400)
-})
+  describe('deletion of a blog', () => {
+    test('succeeds with status code 204 if id is valid', async () => {
+      const blogsAtStart = await helper.blogsInDb()
+      const blogToDelete = blogsAtStart[0]
 
-test.only('a blog can be deleted', async () => {
-  const blogsAtStart = await helper.blogsInDb()
-  const blogToDelete = blogsAtStart[0]
+      await api
+        .delete(`/api/blogs/${blogToDelete.id}`)
+        .expect(204)
 
-  await api
-    .delete(`/api/blogs/${blogToDelete.id}`)
-    .expect(204)
+      const blogsAtEnd = await helper.blogsInDb()
+      const ids = blogsAtEnd.map(b => b.id)
+      
+      assert(!ids.includes(blogToDelete.id))
+      assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length - 1)
+    })
+  })
 
-  const blogsAtEnd = await helper.blogsInDb()
+  describe('updating a blog', () => {
+    test('succeeds with status code 200 and updates likes', async () => {
+      const blogsAtStart = await helper.blogsInDb()
+      const blogToUpdate = blogsAtStart[0]
 
-  const ids = blogsAtEnd.map(n => n.id)
-  assert(!ids.includes(blogToDelete.id))
+      const updatedLikes = {
+        likes: 11
+      }
 
-  assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length - 1)
+      await api
+        .put(`/api/blogs/${blogToUpdate.id}`)
+        .send(updatedLikes)
+        .expect(200)
+        .expect('Content-Type', /application\/json/)
+
+      const blogsAtEnd = await helper.blogsInDb()
+      const updatedBlog = blogsAtEnd.find(b => b.id === blogToUpdate.id)
+      
+      assert.strictEqual(updatedBlog.likes, 11)
+    })
+  })
 })
 
 after(async () => {

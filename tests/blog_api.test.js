@@ -103,7 +103,7 @@ describe('blog list tests', () => {
 
       const blogsAtEnd = await helper.blogsInDb()
       const ids = blogsAtEnd.map(b => b.id)
-      
+
       assert(!ids.includes(blogToDelete.id))
       assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length - 1)
     })
@@ -126,7 +126,7 @@ describe('blog list tests', () => {
 
       const blogsAtEnd = await helper.blogsInDb()
       const updatedBlog = blogsAtEnd.find(b => b.id === blogToUpdate.id)
-      
+
       assert.strictEqual(updatedBlog.likes, 11)
     })
   })
@@ -162,6 +162,78 @@ describe('when there is initially one user in db', () => {
 
     const usernames = usersAtEnd.map(u => u.username)
     assert(usernames.includes(newUser.username))
+  })
+})
+
+describe('when creating a new user', () => {
+  beforeEach(async () => {
+    await User.deleteMany({})
+
+    const passwordHash = await bcrypt.hash('sekret', 10)
+    const user = new User({ username: 'root', name: 'Superuser', passwordHash })
+
+    await user.save()
+  })
+
+  test('creation fails with proper statuscode and message if username is already taken', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'root',
+      name: 'Another Root',
+      password: 'password123',
+    }
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/)
+
+    assert(result.body.error.includes('expected `username` to be unique'))
+
+    const usersAtEnd = await helper.usersInDb()
+    assert.strictEqual(usersAtEnd.length, usersAtStart.length)
+  })
+
+  test('creation fails with status code 400 if password is too short', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'shortpass',
+      name: 'Test User',
+      password: '12',
+    }
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+
+    assert(result.body.error.includes('Minimum length 3 characters'))
+
+    const usersAtEnd = await helper.usersInDb()
+    assert.strictEqual(usersAtEnd.length, usersAtStart.length)
+  })
+
+  test('creation fails with status code 400 if username is too short', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'ed',
+      name: 'Ed',
+      password: 'validpassword',
+    }
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+
+    assert(result.body.error.includes('Minimum length 3 characters'))
+
+    const usersAtEnd = await helper.usersInDb()
+    assert.strictEqual(usersAtEnd.length, usersAtStart.length)
   })
 })
 

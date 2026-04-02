@@ -1,11 +1,12 @@
 const bcrypt = require('bcrypt')
 const usersRouter = require('express').Router()
 const User = require('../models/user')
+const Blog = require('../models/blog')
 
 usersRouter.post('/', async (request, response) => {
 	const { username, name, password } = request.body
 
-	if(password.length<4)
+	if (password.length < 3)
 		return response.status(400).json({ error: "Password Minimum length 3 characters" })
 
 	const saltRounds = 10
@@ -23,7 +24,7 @@ usersRouter.post('/', async (request, response) => {
 })
 
 usersRouter.get('/', async (request, responnse) => {
-	const users= await User.find({})
+	const users = await User.find({}).populate('blogs', { title: 1, author: 1, url: 1, likes: 1, })
 	responnse.json(users)
 })
 

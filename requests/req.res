@@ -1,13 +1,12 @@
-GET http://localhost:3003/api/blogs
+GET http://localhost:3003/api/users
 
 ###
 
-POST http://localhost:3003/api/blogs
+POST http://localhost:3003/api/users
 Content-Type: application/json
 
 {
-	"title": "Il mio secondo post",
-	"author": "Mario Verdi",
-	"url": "https://miosito.it/post1",
-	"likes": 20
+    "username": "root",
+    "name": "Superuser",
+    "password": "salainen"
 }

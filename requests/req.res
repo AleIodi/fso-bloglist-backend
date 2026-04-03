@@ -30,9 +30,10 @@ Content-Type: application/json
 
 POST http://localhost:3003/api/blogs
 Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Im1sdXVra2FpIiwiaWQiOiI2OWNlOGY5YjIyZTI3OWZmNGU4YTU4ZjAiLCJpYXQiOjE3NzUyMDg0MTB9.Yo3TTOqIzCDpJN4hGskfM9n5xR54aN12gVMsqrrjg9U
 
 {
-    "title": "Canonical string reduction",
+    "title": "Token Test",
     "author": "Edsger W. Dijkstra",
     "url": "http://www.cs.utexas.edu/~EWD/transcriptions/EWD08xx/EWD808.html",
     "likes": 12,

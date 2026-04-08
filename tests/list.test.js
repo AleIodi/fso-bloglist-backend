@@ -90,7 +90,7 @@ describe('favorite blog', () => {
     assert.deepStrictEqual(result, {
       title: "Canonical string reduction",
       author: "Edsger W. Dijkstra",
-      url: "http://www.cs.utexas.edu/~EWD/transcriptions/EWD08xx/EWD0808.html",
+      url: "http://www.cs.utexas.edu/~EWD/transcriptions/EWD08xx/EWD808.html",
       likes: 12
     })
   })

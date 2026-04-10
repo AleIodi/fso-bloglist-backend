@@ -55,15 +55,33 @@ blogRouter.delete('/:id', async (request, response) => {
 
 blogRouter.put('/:id', async (request, response) => {
   const body = request.body
+  const user = request.user
+
+  if (!user) {
+    return response.status(401).json({ error: 'token missing or invalid' })
+  }
 
   const blog = await Blog.findById(request.params.id)
   if (!blog) {
-    return response.status(404).end()
+    return response.status(404).json({ error: 'blog not found' })
   }
 
-  blog.title = body.title ?? blog.title
-  blog.author = body.author ?? blog.author
-  blog.url = body.url ?? blog.url
+  const isChangingContent =
+    (body.title && body.title !== blog.title) ||
+    (body.author && body.author !== blog.author) ||
+    (body.url && body.url !== blog.url)
+
+  if (isChangingContent) {
+    if (blog.user.toString() !== user._id.toString()) {
+      return response.status(403).json({
+        error: 'only the creator can edit title, author or url'
+      })
+    }
+    blog.title = body.title ?? blog.title
+    blog.author = body.author ?? blog.author
+    blog.url = body.url ?? blog.url
+  }
+
   blog.likes = body.likes ?? blog.likes
 
   const result = await blog.save()
